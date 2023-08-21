@@ -29,7 +29,7 @@
 		</parameter>
 		<parameter name="scoreMode" type="text" groupName="wakewordDetector">
 			<label>Score Mode</label>
-			<description>Indicates how to calculate the final score.</description>
+			<description>Indicates how to calculate the final score. Not affect to wakeword models.</description>
 			<default>max</default>
 			<options>
 				<option value="average">Average</option>
@@ -48,16 +48,23 @@
 			<description>Minimum number of positive scores to consider a partial detection as a detection.</description>
 			<default>5</default>
 		</parameter>
-		<parameter name="comparatorRef" type="decimal" min="0" max="1" groupName="wakewordDetector">
-			<label>Comparator Ref</label>
-			<description>Configures the reference for the comparator used to match the samples.</description>
+		<parameter name="scoreRef" type="decimal" min="0" max="1" groupName="wakewordDetector">
+			<label>Score Ref</label>
+			<description>Value used to calculate the score as a percent in range 0 - 1.</description>
 			<default>0.22</default>
 			<advanced>true</advanced>
 		</parameter>
-		<parameter name="comparatorBandSize" type="integer" groupName="wakewordDetector">
-			<label>Comparator Band Size</label>
-			<description>Configures the band-size for the comparator used to match the samples.</description>
+		<parameter name="bandSize" type="integer" groupName="wakewordDetector">
+			<label>Band Size</label>
+			<description>Configures the band-size for the comparator used to match the wakeword refs. Not affect to wakeword
+				models.</description>
 			<default>5</default>
+			<advanced>true</advanced>
+		</parameter>
+		<parameter name="record" type="boolean" groupName="wakewordDetector">
+			<label>Record on Partial Detections</label>
+			<description>Create wav record on the first partial detections and any other one that surpasses its score.</description>
+			<default>false</default>
 			<advanced>true</advanced>
 		</parameter>
 		<parameter name="gainNormalizer" type="boolean" groupName="filters">

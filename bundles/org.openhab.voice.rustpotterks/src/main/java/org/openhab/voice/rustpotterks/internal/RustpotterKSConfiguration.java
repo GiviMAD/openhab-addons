@@ -38,6 +38,7 @@ public class RustpotterKSConfiguration {
     public float averagedThreshold = 0.2f;
     /**
      * Indicates how to calculate the final score.
+     * Only applies to not trained wakewords.
      */
     public String scoreMode = "max";
     /**
@@ -47,11 +48,17 @@ public class RustpotterKSConfiguration {
     /**
      * Configures the reference for the comparator used to match the samples.
      */
-    public float comparatorRef = 0.22f;
+    public float scoreRef = 0.22f;
     /**
      * Configures the band-size for the comparator used to match the samples.
+     * Only applies to not trained wakewords.
      */
-    public int comparatorBandSize = 5;
+    public int bandSize = 5;
+    /**
+     * Create wav record on the first partial detections and any other one that surpasses its score.
+     *
+     */
+    public boolean record = false;
     /**
      * Enables an audio filter that intent to approximate the volume of the stream to a reference level (RMS of the
      * samples is used as volume measure).

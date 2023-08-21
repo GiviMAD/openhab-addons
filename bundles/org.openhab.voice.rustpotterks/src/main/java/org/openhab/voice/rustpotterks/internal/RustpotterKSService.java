@@ -62,21 +62,33 @@ import io.github.givimad.rustpotter_java.ScoreMode;
         + " Keyword Spotter", description_uri = SERVICE_CATEGORY + ":" + SERVICE_ID)
 public class RustpotterKSService implements KSService {
     private static final String RUSTPOTTER_FOLDER = Path.of(OpenHAB.getUserDataFolder(), "rustpotter").toString();
+    private static final String RUSTPOTTER_RECORDS_FOLDER = Path.of(RUSTPOTTER_FOLDER, "records").toString();
     private final Logger logger = LoggerFactory.getLogger(RustpotterKSService.class);
     private final ScheduledExecutorService executor = ThreadPoolManager.getScheduledPool("OH-voice-rustpotterks");
     private RustpotterKSConfiguration config = new RustpotterKSConfiguration();
     static {
         Logger logger = LoggerFactory.getLogger(RustpotterKSService.class);
-        File directory = new File(RUSTPOTTER_FOLDER);
-        if (!directory.exists()) {
-            if (directory.mkdir()) {
-                logger.info("rustpotter dir created {}", RUSTPOTTER_FOLDER);
+        tryCreateDir(RUSTPOTTER_FOLDER, logger, "rustpotter dir created {}");
+        tryCreateDir(RUSTPOTTER_RECORDS_FOLDER, logger, "rustpotter record dir created {}");
+    }
+
+    private static void tryCreateDir(String rustpotterFolder, Logger logger, String msg) {
+        File addonDir = new File(rustpotterFolder);
+        if (!addonDir.exists()) {
+            if (addonDir.mkdir()) {
+                logger.info(msg, rustpotterFolder);
             }
         }
     }
 
     @Activate
     protected void activate(Map<String, Object> config) {
+        logger.debug("Loading library");
+        try {
+            Rustpotter.loadLibrary();
+        } catch (IOException e) {
+            logger.warn("Unable to load rustpotter native library: {}", e.getMessage());
+        }
         modified(config);
     }
 
@@ -102,19 +114,16 @@ public class RustpotterKSService implements KSService {
 
     @Override
     public Set<AudioFormat> getSupportedFormats() {
-        return Set
-                .of(new AudioFormat(AudioFormat.CONTAINER_WAVE, AudioFormat.CODEC_PCM_SIGNED, null, null, null, null));
+        return Set.of(
+                new AudioFormat(AudioFormat.CONTAINER_WAVE, AudioFormat.CODEC_PCM_SIGNED, false, 16, null, 16000L),
+                new AudioFormat(AudioFormat.CONTAINER_WAVE, AudioFormat.CODEC_PCM_SIGNED, null, 16, null, null),
+                new AudioFormat(AudioFormat.CONTAINER_WAVE, AudioFormat.CODEC_PCM_SIGNED, null, 32, null, null),
+                new AudioFormat(AudioFormat.CONTAINER_WAVE, AudioFormat.CODEC_PCM_SIGNED, null, 8, null, null));
     }
 
     @Override
     public KSServiceHandle spot(KSListener ksListener, AudioStream audioStream, Locale locale, String keyword)
             throws KSException {
-        logger.debug("Loading library");
-        try {
-            Rustpotter.loadLibrary();
-        } catch (IOException e) {
-            throw new KSException("Unable to load rustpotter lib: " + e.getMessage());
-        }
         var audioFormat = audioStream.getFormat();
         var frequency = audioFormat.getFrequency();
         var bitDepth = audioFormat.getBitDepth();
@@ -136,7 +145,7 @@ public class RustpotterKSService implements KSService {
         var modelName = keyword.replaceAll("\\s", "_") + ".rpw";
         var modelPath = Path.of(RUSTPOTTER_FOLDER, modelName);
         if (!modelPath.toFile().exists()) {
-            throw new KSException("Missing model " + modelName);
+            throw new KSException("Missing model: " + modelPath);
         }
         try {
             rustpotter.addWakewordModelFile(modelPath.toString());
@@ -156,18 +165,18 @@ public class RustpotterKSService implements KSService {
             throws Exception {
         var rustpotterBuilder = new RustpotterBuilder();
         // audio configs
-        rustpotterBuilder.setBitsPerSample(bitDepth);
+        rustpotterBuilder.setSampleFormat(getIntSampleFormat(bitDepth));
         rustpotterBuilder.setSampleRate(frequency);
         rustpotterBuilder.setChannels(channels);
-        rustpotterBuilder.setSampleFormat(SampleFormat.INT);
         rustpotterBuilder.setEndianness(endianness);
         // detector configs
         rustpotterBuilder.setThreshold(config.threshold);
         rustpotterBuilder.setAveragedThreshold(config.averagedThreshold);
         rustpotterBuilder.setScoreMode(getScoreMode(config.scoreMode));
         rustpotterBuilder.setMinScores(config.minScores);
-        rustpotterBuilder.setComparatorRef(config.comparatorRef);
-        rustpotterBuilder.setComparatorBandSize(config.comparatorBandSize);
+        rustpotterBuilder.setScoreRef(config.scoreRef);
+        rustpotterBuilder.setBandSize(config.bandSize);
+        rustpotterBuilder.setRecordPath(config.record ? RUSTPOTTER_RECORDS_FOLDER : null);
         // filter configs
         rustpotterBuilder.setGainNormalizerEnabled(config.gainNormalizer);
         rustpotterBuilder.setMinGain(config.minGain);
@@ -225,27 +234,26 @@ public class RustpotterKSService implements KSService {
         logger.debug("rustpotter stopped");
     }
 
+    private static SampleFormat getIntSampleFormat(int bitDepth) throws IOException {
+        return switch (bitDepth) {
+            case 8 -> SampleFormat.I8;
+            case 16 -> SampleFormat.I16;
+            case 32 -> SampleFormat.I32;
+            default -> throw new IOException("Unsupported audio bit depth: " + bitDepth);
+        };
+    }
+
     private ScoreMode getScoreMode(String mode) {
-        switch (mode) {
-            case "average":
-                return ScoreMode.AVG;
-            case "median":
-                return ScoreMode.MEDIAN;
-            case "p25":
-                return ScoreMode.P25;
-            case "p50":
-                return ScoreMode.P50;
-            case "p75":
-                return ScoreMode.P75;
-            case "p80":
-                return ScoreMode.P80;
-            case "p90":
-                return ScoreMode.P90;
-            case "p95":
-                return ScoreMode.P95;
-            case "max":
-            default:
-                return ScoreMode.MAX;
-        }
+        return switch (mode) {
+            case "average" -> ScoreMode.AVG;
+            case "median" -> ScoreMode.MEDIAN;
+            case "p25" -> ScoreMode.P25;
+            case "p50" -> ScoreMode.P50;
+            case "p75" -> ScoreMode.P75;
+            case "p80" -> ScoreMode.P80;
+            case "p90" -> ScoreMode.P90;
+            case "p95" -> ScoreMode.P95;
+            default -> ScoreMode.MAX;
+        };
     }
 }
