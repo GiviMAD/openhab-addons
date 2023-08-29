@@ -50,6 +50,7 @@ import io.github.givimad.rustpotter_java.Rustpotter;
 import io.github.givimad.rustpotter_java.RustpotterBuilder;
 import io.github.givimad.rustpotter_java.SampleFormat;
 import io.github.givimad.rustpotter_java.ScoreMode;
+import io.github.givimad.rustpotter_java.VADMode;
 
 /**
  * The {@link RustpotterKSService} is a keyword spotting implementation based on rustpotter.
@@ -117,8 +118,7 @@ public class RustpotterKSService implements KSService {
         return Set.of(
                 new AudioFormat(AudioFormat.CONTAINER_WAVE, AudioFormat.CODEC_PCM_SIGNED, false, 16, null, 16000L),
                 new AudioFormat(AudioFormat.CONTAINER_WAVE, AudioFormat.CODEC_PCM_SIGNED, null, 16, null, null),
-                new AudioFormat(AudioFormat.CONTAINER_WAVE, AudioFormat.CODEC_PCM_SIGNED, null, 32, null, null),
-                new AudioFormat(AudioFormat.CONTAINER_WAVE, AudioFormat.CODEC_PCM_SIGNED, null, 8, null, null));
+                new AudioFormat(AudioFormat.CONTAINER_WAVE, AudioFormat.CODEC_PCM_SIGNED, null, 32, null, null));
     }
 
     @Override
@@ -148,7 +148,7 @@ public class RustpotterKSService implements KSService {
             throw new KSException("Missing model: " + modelPath);
         }
         try {
-            rustpotter.addWakewordModelFile(modelPath.toString());
+            rustpotter.addWakewordFile(modelPath.toString());
         } catch (Exception e) {
             throw new KSException("Unable to load wake word model: " + e.getMessage());
         }
@@ -176,6 +176,7 @@ public class RustpotterKSService implements KSService {
         rustpotterBuilder.setMinScores(config.minScores);
         rustpotterBuilder.setScoreRef(config.scoreRef);
         rustpotterBuilder.setBandSize(config.bandSize);
+        rustpotterBuilder.setVADMode(getVADMode(config.vadMode));
         rustpotterBuilder.setRecordPath(config.record ? RUSTPOTTER_RECORDS_FOLDER : null);
         // filter configs
         rustpotterBuilder.setGainNormalizerEnabled(config.gainNormalizer);
@@ -254,6 +255,15 @@ public class RustpotterKSService implements KSService {
             case "p90" -> ScoreMode.P90;
             case "p95" -> ScoreMode.P95;
             default -> ScoreMode.MAX;
+        };
+    }
+
+    private @Nullable VADMode getVADMode(String mode) {
+        return switch (mode) {
+            case "easy" -> VADMode.EASY;
+            case "medium" -> VADMode.MEDIUM;
+            case "hard" -> VADMode.HARD;
+            default -> null;
         };
     }
 }

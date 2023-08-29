@@ -42,6 +42,10 @@ public class RustpotterKSConfiguration {
      */
     public String scoreMode = "max";
     /**
+     * Enables a basic vad detector to discard some execution.
+     */
+    public String vadMode = "";
+    /**
      * Minimum number of positive scores to consider a partial detection as a detection.
      */
     public int minScores = 5;

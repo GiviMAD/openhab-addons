@@ -43,6 +43,15 @@
 				<option value="p95">P95</option>
 			</options>
 		</parameter>
+		<parameter name="vadMode" type="text" groupName="wakewordDetector">
+			<label>VAD Mode</label>
+			<description>Enables a basic vad detector to discard some execution.</description>
+			<options>
+				<option value="easy">Easy</option>
+				<option value="medium">Medium</option>
+				<option value="hard">Hard</option>
+			</options>
+		</parameter>
 		<parameter name="minScores" type="integer" groupName="wakewordDetector">
 			<label>Min Scores</label>
 			<description>Minimum number of positive scores to consider a partial detection as a detection.</description>
