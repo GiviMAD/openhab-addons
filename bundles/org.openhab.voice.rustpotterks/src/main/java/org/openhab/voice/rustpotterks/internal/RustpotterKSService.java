@@ -148,7 +148,7 @@ public class RustpotterKSService implements KSService {
             throw new KSException("Missing model: " + modelPath);
         }
         try {
-            rustpotter.addWakewordFile(modelPath.toString());
+            rustpotter.addWakewordFile("w", modelPath.toString());
         } catch (Exception e) {
             throw new KSException("Unable to load wake word model: " + e.getMessage());
         }
